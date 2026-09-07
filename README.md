@@ -143,8 +143,7 @@ Evaluated across 100 realistic enterprise QA items covering HR, Finance, Enginee
 ### Quick Start with Docker Compose
 ```bash
 # 1. Clone repository
-git clone https://github.com/enterprise/knowledge-intelligence.git
-cd knowledge-intelligence
+git clone https://github.com/Suryansh07Singh/Enterprise-Knowledge-Intelligence.git
 
 # 2. Copy environment template
 cp .env.example .env
