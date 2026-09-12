@@ -16,7 +16,7 @@ from app.core.logging import logger
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
-UPLOAD_DIR = "./data/uploaded_docs"
+UPLOAD_DIR = "/app/data/uploaded_docs"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 async def _bg_ingest_wrapper(document_id: str, job_id: str):

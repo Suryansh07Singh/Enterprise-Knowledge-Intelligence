@@ -104,20 +104,26 @@ class QdrantDenseStore:
         top_k: int = 25
     ) -> List[Dict[str, Any]]:
         query_vector = Embedder.embed_query(query)
-        
+
         # Security & RBAC payload filtering
-        # Lower privilege users can only access chunks matching their access levels
         allowed_access_levels = ["public", "employee"]
         roles_lower = [r.lower() for r in user_roles]
+
         if "admin" in roles_lower:
-            allowed_access_levels.extend(["hr", "finance", "engineering", "admin", "confidential"])
+            allowed_access_levels.extend(
+                ["hr", "finance", "engineering", "admin", "confidential"]
+            )
+
         if "hr" in roles_lower:
             allowed_access_levels.append("hr")
+
         if "finance" in roles_lower:
             allowed_access_levels.append("finance")
+
         if "engineering" in roles_lower:
             allowed_access_levels.append("engineering")
 
+        # Qdrant search
         try:
             if hasattr(self.client, "query_points"):
                 res_obj = self.client.query_points(
@@ -126,41 +132,53 @@ class QdrantDenseStore:
                     limit=top_k
                 )
                 results = res_obj.points
+
             elif hasattr(self.client, "search"):
                 results = self.client.search(
                     collection_name=settings.QDRANT_COLLECTION_NAME,
                     query_vector=query_vector,
                     limit=top_k
                 )
+
             else:
-                results = []
+                logger.error("Qdrant client has no supported search method.")
+                return []
 
-            hits = []
-            for res in results:
-                payload = res.payload
-                acc = payload.get("access_level", "employee").lower()
-                doc_dept = payload.get("department", "General")
-                
-                # RBAC Verification Filter
-                if acc not in allowed_access_levels and doc_dept != department and "admin" not in roles_lower:
-                    continue
-
-                hits.append({
-                    "chunk_id": str(res.id),
-                    "document_id": payload.get("document_id"),
-                    "document_name": payload.get("document_name"),
-                    "text": payload.get("text"),
-                    "page_number": payload.get("page_number", 1),
-                    "section_title": payload.get("section_title", "General"),
-                    "department": payload.get("department", "General"),
-                    "access_level": payload.get("access_level", "employee"),
-                    "score": float(res.score),
-                    "dense_score": float(res.score)
-                })
-            return hits
         except Exception as e:
             logger.error(f"Dense vector search failed: {e}")
             return []
+
+        # Convert Qdrant results into application format
+        hits = []
+
+        for res in results:
+            payload = res.payload or {}
+
+            acc = payload.get("access_level", "employee").lower()
+            doc_dept = payload.get("department", "General")
+
+            # RBAC Verification
+            if (
+                acc not in allowed_access_levels
+                and doc_dept != department
+                and "admin" not in roles_lower
+            ):
+                continue
+
+            hits.append({
+                "chunk_id": str(res.id),
+                "document_id": payload.get("document_id"),
+                "document_name": payload.get("document_name"),
+                "text": payload.get("text"),
+                "page_number": payload.get("page_number", 1),
+                "section_title": payload.get("section_title", "General"),
+                "department": payload.get("department", "General"),
+                "access_level": payload.get("access_level", "employee"),
+                "score": float(res.score),
+                "dense_score": float(res.score)
+            })
+
+        return hits
 
     def delete_document_chunks(self, document_id: str):
         try:
