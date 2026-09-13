@@ -1,5 +1,6 @@
 'use client';
 
+import ReactMarkdown from 'react-markdown';
 import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
@@ -165,7 +166,27 @@ export default function ChatPage() {
                       : 'bg-slate-900/80 border border-slate-800 text-slate-200 rounded-tl-none shadow-xl'
                   }`}
                 >
+                  <ReactMarkdown
+                  components={{
+                    p: ({ children }) => (
+                      <p className="mb-2 last:mb-0">{children}</p>
+                    ),
+                    ul: ({ children }) => (
+                      <ul className="list-disc pl-5 space-y-1.5 mb-2">{children}</ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="list-decimal pl-5 space-y-1.5 mb-2">{children}</ol>
+                    ),
+                    li: ({ children }) => (
+                      <li>{children}</li>
+                    ),
+                    strong: ({ children }) => (
+                      <strong className="font-semibold text-white">{children}</strong>
+                    ),
+                  }}
+                >
                   {msg.content}
+                </ReactMarkdown>
 
                   {/* Grounded Status & Confidence */}
                   {msg.sender === 'assistant' && msg.id !== 'welcome' && (

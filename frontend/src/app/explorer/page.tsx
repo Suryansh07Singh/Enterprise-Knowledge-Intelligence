@@ -117,12 +117,12 @@ export default function ExplorerPage() {
                   </div>
 
                   <div className="flex items-center gap-3 font-mono text-xs">
-                    {r.rerank_score !== undefined && (
+                    {r.rerank_score != null && (
                       <span className="px-2.5 py-1 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/30">
                         Rerank Score: {r.rerank_score.toFixed(4)}
                       </span>
                     )}
-                    {r.sparse_score !== undefined && (
+                    {r.sparse_score != null && (
                       <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                         BM25: {r.sparse_score.toFixed(2)}
                       </span>

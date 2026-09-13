@@ -40,6 +40,8 @@ class BenchmarkRunner:
         mrrs = []
         ndcgs = []
         faithfulness_list = []
+        answerable_questions = 0
+        unanswerable_questions = 0
 
         for item in dataset:
             query = item["question"]
@@ -56,13 +58,46 @@ class BenchmarkRunner:
             else:
                 candidates = candidates[:top_k]
 
-            retrieved_doc_names = [c.get("document_name", "") for c in candidates if c.get("document_name")]
+            retrieved_doc_names = [
+                c.get("document_name", "")
+                for c in candidates
+                if c.get("document_name")
+            ]
 
             # 3. Calculate IR Metrics
-            recalls.append(EvaluationMetrics.recall_at_k(retrieved_doc_names, gt_docs, top_k))
-            precisions.append(EvaluationMetrics.precision_at_k(retrieved_doc_names, gt_docs, top_k))
-            mrrs.append(EvaluationMetrics.mrr(retrieved_doc_names, gt_docs))
-            ndcgs.append(EvaluationMetrics.ndcg_at_k(retrieved_doc_names, gt_docs, top_k))
+            # Retrieval metrics are evaluated only for answerable questions.
+            if gt_docs:
+                answerable_questions += 1
+
+                recalls.append(
+                    EvaluationMetrics.recall_at_k(
+                        retrieved_doc_names,
+                        gt_docs,
+                        top_k
+                    )
+                )
+                precisions.append(
+                    EvaluationMetrics.precision_at_k(
+                        retrieved_doc_names,
+                        gt_docs,
+                        top_k
+                    )
+                )
+                mrrs.append(
+                    EvaluationMetrics.mrr(
+                        retrieved_doc_names,
+                        gt_docs
+                    )
+                )
+                ndcgs.append(
+                    EvaluationMetrics.ndcg_at_k(
+                        retrieved_doc_names,
+                        gt_docs,
+                        top_k
+                    )
+                )
+            else:
+                unanswerable_questions += 1
 
             # 4. Generate answer and evaluate Faithfulness
             gen_res = await grounded_generator.generate_response(query, candidates)
@@ -70,12 +105,14 @@ class BenchmarkRunner:
             ctx_text = " ".join([c.get("text", "") for c in candidates])
             faithfulness_list.append(EvaluationMetrics.faithfulness_score(answer_text, ctx_text))
 
-        total_q = len(dataset) if dataset else 1
-        avg_recall = sum(recalls) / total_q
-        avg_precision = sum(precisions) / total_q
-        avg_mrr = sum(mrrs) / total_q
-        avg_ndcg = sum(ndcgs) / total_q
-        avg_faithfulness = sum(faithfulness_list) / total_q
+        retrieval_q = len(recalls) if recalls else 1
+        faithfulness_q = len(faithfulness_list) if faithfulness_list else 1
+
+        avg_recall = sum(recalls) / retrieval_q
+        avg_precision = sum(precisions) / retrieval_q
+        avg_mrr = sum(mrrs) / retrieval_q
+        avg_ndcg = sum(ndcgs) / retrieval_q
+        avg_faithfulness = sum(faithfulness_list) / faithfulness_q
         duration = round(time.perf_counter() - t0, 2)
 
         # Save to DB
@@ -89,6 +126,8 @@ class BenchmarkRunner:
             faithfulness_score=round(avg_faithfulness, 4),
             answer_relevance_score=round(avg_faithfulness, 4),
             total_eval_questions=len(dataset),
+            answerable_questions=answerable_questions,
+            unanswerable_questions=unanswerable_questions,
             duration_seconds=duration
         )
         db.add(eval_run)
