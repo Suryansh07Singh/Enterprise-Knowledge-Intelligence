@@ -50,7 +50,11 @@ class QdrantDenseStore:
     def _init_client(self):
         try:
             # Try connecting to local Qdrant container or host
-            self.client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, timeout=2.0)
+            self.client = QdrantClient(
+                url=f"https://{settings.QDRANT_HOST}",
+                api_key=settings.QDRANT_API_KEY,
+                timeout=10.0
+            )
             self.client.get_collections()
             logger.info("Connected to Qdrant vector database.")
         except Exception as e:
