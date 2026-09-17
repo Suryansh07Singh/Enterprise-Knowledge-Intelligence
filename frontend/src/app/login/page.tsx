@@ -1,9 +1,10 @@
 'use client';
 
+import { setAuthToken, fetchWithAuth } from '@/lib/api';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Database, ShieldCheck, ArrowRight, Lock, Mail } from 'lucide-react';
-import { setAuthToken } from '@/lib/api';
+
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,11 +19,11 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const res = await fetch('http://localhost:8000/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+      const res = await fetchWithAuth('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
 
       if (res.ok) {
         const data = await res.json();
